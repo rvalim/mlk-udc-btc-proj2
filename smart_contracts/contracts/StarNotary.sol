@@ -1,23 +1,43 @@
 pragma solidity ^0.4.23;
 
-//import '../node_modules/openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
 import '../node_modules/openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
 
 contract StarNotary is ERC721 { 
 
     struct Star { 
-        string name; 
+        string name;
+        string dec;
+        string mag;
+        string cent;
+        string story;
     }
 
-    mapping(uint256 => Star) public tokenIdToStarInfo; 
+    // mapping(uint256 => Star) _tokenToStarInfo;
+    // mapping(bytes32 => uint256) _hashToTokenId;
+    //Star[] public stars;    
+
+    mapping(bytes32 => bool) _tokenExists;
+    mapping(bytes32 => uint256) _tokenToIndex;
     mapping(uint256 => uint256) public starsForSale;
+    Star[] stars;
 
-    function createStar(string _name, uint256 _tokenId) public { 
-        Star memory newStar = Star(_name);
+    event createStarEvent(uint256 tokenId);
 
-        tokenIdToStarInfo[_tokenId] = newStar;
+    function createStar(string _name, string _dec, string _mag, string _cent, string _story) 
+    public
+    {
+        bytes32 starHash = _genHash(_dec, _mag, _cent);
+        require(!_checkIfStarExist(starHash), "This coordinates has already been registered!");
 
-        _mint(msg.sender, _tokenId);
+        Star memory newStar = Star(_name, _dec, _mag, _cent, _story);
+        uint256 tokenId = stars.push(newStar) - 1;
+
+        _tokenToIndex[starHash] = tokenId;
+        _tokenExists[starHash] = true;
+
+        _mint(msg.sender, tokenId);
+
+        emit createStarEvent(tokenId);
     }
 
     function putStarUpForSale(uint256 _tokenId, uint256 _price) public { 
@@ -42,4 +62,39 @@ contract StarNotary is ERC721 {
             msg.sender.transfer(msg.value - starCost);
         }
     }
+
+    function tokenIdToStarInfo(uint256 _tokenId) 
+    public view
+    //tokenIssued(_tokenId)
+    returns(
+        string name, 
+        string dec, 
+        string mag, 
+        string cent,
+        string story 
+    ) {
+        Star memory s = stars[_tokenId];
+        return (s.name, s.dec, s.mag, s.cent, s.story);
+    }
+
+
+    function _genHash(string dec, string mag, string cent) 
+    private pure
+    returns (bytes32) {
+        return keccak256(abi.encodePacked(dec, mag, cent));
+    }
+
+    function _checkIfStarExist(bytes32 starHash) 
+    private view
+    returns (bool) {
+        return (_tokenExists[starHash]);
+    }
+
+    function checkIfStarExist(string dec, string mag, string cent) 
+    public view
+    returns (bool) {
+        bytes32 starHash = _genHash(dec, mag, cent);
+        return (_checkIfStarExist(starHash));
+    }
+
 }
