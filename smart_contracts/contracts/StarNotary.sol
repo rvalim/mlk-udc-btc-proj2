@@ -17,9 +17,10 @@ contract StarNotary is ERC721 {
     //Star[] public stars;    
 
     mapping(bytes32 => bool) _tokenExists;
-    mapping(bytes32 => uint256) _tokenToIndex;
+    // mapping(bytes32 => uint256) _tokenToIndex;
     mapping(uint256 => uint256) public starsForSale;
     Star[] stars;
+    uint256[] _starsForSale;
 
     event createStarEvent(uint256 tokenId);
 
@@ -32,7 +33,7 @@ contract StarNotary is ERC721 {
         Star memory newStar = Star(_name, _dec, _mag, _cent, _story);
         uint256 tokenId = stars.push(newStar) - 1;
 
-        _tokenToIndex[starHash] = tokenId;
+        // _tokenToIndex[starHash] = tokenId;
         _tokenExists[starHash] = true;
 
         _mint(msg.sender, tokenId);
@@ -40,27 +41,37 @@ contract StarNotary is ERC721 {
         emit createStarEvent(tokenId);
     }
 
+    function getStarsForSale() public view returns(uint256[]) {
+        return _starsForSale;
+    }
+
     function putStarUpForSale(uint256 _tokenId, uint256 _price) public { 
-        require(this.ownerOf(_tokenId) == msg.sender);
+        require(this.ownerOf(_tokenId) == msg.sender, 'Only the owner can sell his stars!');
 
         starsForSale[_tokenId] = _price;
+        _starsForSale.push(_tokenId); //Customize
     }
 
     function buyStar(uint256 _tokenId) public payable { 
-        require(starsForSale[_tokenId] > 0);
+        require(starsForSale[_tokenId] > 0, 'Star is not for sale');
+        require(this.ownerOf(_tokenId) != msg.sender, 'The owner can\'t buy his own star!');
         
         uint256 starCost = starsForSale[_tokenId];
         address starOwner = this.ownerOf(_tokenId);
-        require(msg.value >= starCost);
+        require(msg.value >= starCost, 'Offered value is less than star\'s price');
 
-        _removeTokenFrom(starOwner, _tokenId);
-        _addTokenTo(msg.sender, _tokenId);
+        _removeTokenFrom(starOwner, _tokenId); //Original
+        _addTokenTo(msg.sender, _tokenId); //Original
+        // safeTransferFrom(starOwner, msg.sender, _tokenId);//Customize
         
         starOwner.transfer(starCost);
 
         if(msg.value > starCost) { 
             msg.sender.transfer(msg.value - starCost);
         }
+
+        delete starsForSale[_tokenId];//Customize
+        delete _starsForSale[_tokenId];//Customize
     }
 
     function tokenIdToStarInfo(uint256 _tokenId) 
