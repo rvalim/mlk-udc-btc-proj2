@@ -20,7 +20,7 @@ contract StarNotary is ERC721 {
     // mapping(bytes32 => uint256) _tokenToIndex;
     mapping(uint256 => uint256) public starsForSale;
     Star[] stars;
-    uint256[] _starsForSale;
+    // uint256[] _starsForSale;
 
     event createStarEvent(uint256 tokenId);
 
@@ -36,25 +36,27 @@ contract StarNotary is ERC721 {
         // _tokenToIndex[starHash] = tokenId;
         _tokenExists[starHash] = true;
 
-        _mint(msg.sender, tokenId);
+        mint(msg.sender, tokenId);
 
         emit createStarEvent(tokenId);
     }
 
-    function getStarsForSale() public view returns(uint256[]) {
-        return _starsForSale;
+    function mint(address _to, uint256 _tokenId) public {
+        _mint(_to, _tokenId);
     }
 
     function putStarUpForSale(uint256 _tokenId, uint256 _price) public { 
-        require(this.ownerOf(_tokenId) == msg.sender, 'Only the owner can sell his stars!');
+        require(_isApproved(msg.sender, _tokenId) == true, 'Only the owner or approved operators can sell this star!');
 
         starsForSale[_tokenId] = _price;
-        _starsForSale.push(_tokenId); //Customize
+
+        // delete _starsForSale[_tokenId]; //Customize
+        // _starsForSale.push(_tokenId); //Customize
     }
 
     function buyStar(uint256 _tokenId) public payable { 
         require(starsForSale[_tokenId] > 0, 'Star is not for sale');
-        require(this.ownerOf(_tokenId) != msg.sender, 'The owner can\'t buy his own star!');
+        require(_canBuy(msg.sender, _tokenId) == true, 'The owner or his operators can\'t buy his own star!');
         
         uint256 starCost = starsForSale[_tokenId];
         address starOwner = this.ownerOf(_tokenId);
@@ -71,9 +73,9 @@ contract StarNotary is ERC721 {
         }
 
         delete starsForSale[_tokenId];//Customize
-        delete _starsForSale[_tokenId];//Customize
+        // delete _starsForSale[_tokenId];//Customize
     }
-
+    
     function tokenIdToStarInfo(uint256 _tokenId) 
     public view
     //tokenIssued(_tokenId)
@@ -88,24 +90,38 @@ contract StarNotary is ERC721 {
         return (s.name, s.dec, s.mag, s.cent, s.story);
     }
 
-
-    function _genHash(string dec, string mag, string cent) 
-    private pure
-    returns (bytes32) {
-        return keccak256(abi.encodePacked(dec, mag, cent));
+    function checkIfStarExist(string dec, string mag, string cent) 
+    public view
+    returns (bool) {
+        bytes32 starHash = _genHash(dec, mag, cent);
+        return (_checkIfStarExist(starHash));
     }
-
+    
     function _checkIfStarExist(bytes32 starHash) 
     private view
     returns (bool) {
         return (_tokenExists[starHash]);
     }
 
-    function checkIfStarExist(string dec, string mag, string cent) 
-    public view
-    returns (bool) {
-        bytes32 starHash = _genHash(dec, mag, cent);
-        return (_checkIfStarExist(starHash));
+    function _isApproved(address _operator, uint256 _tokenId) 
+    private view 
+    returns (bool isApproved) {
+        address owner = this.ownerOf(_tokenId); 
+        bool hasTokenApproval = getApproved(_tokenId) == _operator;
+        bool isOwner = owner == _operator;
+        isApproved = (isOwner || hasTokenApproval || isApprovedForAll(owner, _operator));
+    }
+
+    function _canBuy(address _operator, uint256 _tokenId) 
+    private view 
+    returns (bool canBuy) {
+        canBuy = !_isApproved(_operator, _tokenId);
+    }
+
+    function _genHash(string dec, string mag, string cent) 
+    private pure
+    returns (bytes32) {
+        return keccak256(abi.encodePacked(dec, mag, cent));
     }
 
 }
