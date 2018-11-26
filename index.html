@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Notary</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
+</head>
+
+<body>
+    <h1>Star Notary</h1>
+    <table style="width:100%">
+        <tr>
+            <td>
+                <h2>Claim Star</h2>
+            </td>
+            <td>
+                <h2>Find Star</h2>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <form id="frmStar">
+                    <div class="container">
+
+                        <div class="row">
+                            <label class="bold">Star Name:</label>
+                            <input type="text" id="txtName" />
+                        </div>
+
+                        <div class="row">
+                            <label class="bold">Star Story:</label>
+                            <input type="text" id="txtStory" />
+                        </div>
+
+                        <div class="row">
+                            <label class="bold">RA:</label>
+                            <input type="text" id="txtRa" />
+                        </div>
+
+                        <div class="row">
+                            <label class="bold"> Dec:</label>
+                            <input type="text" id="txtDec" />
+                        </div>
+
+                        <div class="row">
+                            <label class="bold">Mag:</label>
+                            <input type="text" id="txtMag" />
+                        </div>
+
+                    </div>
+                </form>
+            </td>
+            <td>
+
+                <div class="container">
+                    <div class="row">
+                        <label class="bold">Token Id:</label>
+                        <input type="text" id="txtToken" value="0" />
+                    </div>
+
+                    <div class="row">
+                        <label class="bold">Star Name:</label>
+                        <label id="lblName"></label>
+                    </div>
+
+                    <div class="row">
+                        <label class="bold">Star Story:</label>
+                        <label id="lblStory"></label>
+                    </div>
+
+                    <div class="row">
+                        <label class="bold">RA:</label>
+                        <label id="lblRa"></label>
+                    </div>
+
+                    <div class="row">
+                        <label class="bold"> Dec:</label>
+                        <label id="lblDec"></label>
+                    </div>
+
+                    <div class="row">
+                        <label class="bold">Mag:</label>
+                        <label id="lblMag"></label>
+                    </div>
+
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td><button id="btnClaim" onclick="claimStar()">Claim Star</button></td>
+            <td><button id="btnFinc" onclick="findStar()">FindStar</button></td>
+        </tr>
+    </table>
+    <script src="./abi.js"></script>
+    <script>
+        window.addEventListener('load', async () => {
+            // Modern dapp browsers...
+            if (window.ethereum) {
+                window.web3 = new Web3(ethereum);
+                try {
+                    // Request account access if needed
+                    await ethereum.enable();
+                    // Acccounts now exposed
+                    // web3.eth.sendTransaction({/* ... */ });
+                } catch (error) {
+                    // User denied account access...
+                }
+            }
+            // Legacy dapp browsers...
+            else if (window.web3) {
+                window.web3 = new Web3(web3.currentProvider);
+                // Acccounts always exposed
+                // web3.eth.sendTransaction({/* ... */ });
+            }
+            // Non-dapp browsers...
+            else {
+                console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+            }
+
+            console.log(web3.eth.accounts[0]);
+        });
+
+
+        getValue = objName => document.getElementById('txt' + objName).value;
+        setValue = (objName, value) => document.getElementById('lbl' + objName).innerText = value;
+
+        getStarName = () => getValue('Name');
+        setStarName = (value) => setValue('Name', value);
+
+        getStarStory = () => getValue('Story');
+        setStarStory = (value) => setValue('Story', value);
+
+        getStarRA = () => getValue('Ra');
+        setStarRA = (value) => setValue('Ra', value);
+
+        getStarDEC = () => getValue('Dec');
+        setStarDEC = (value) => setValue('Dec', value);
+
+        getStarMAG = () => getValue('Mag');
+        setStarMAG = (value) => setValue('Mag', value);
+
+        resetForm = () => document.getElementById('frmStar').reset();
+
+        getToken = () => getValue('Token');
+
+        if (typeof web3 != 'undefined') {
+            web3 = new Web3(web3.currentProvider) // what Metamask injected 
+        } else {
+            // Instantiate and set Ganache as your provider
+            //web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+            web3 = new Web3(new Web3.providers.HttpProvider("https://rinkeby.infura.io/v3/f4727d9335df4eed9c8816904d0194f5"));
+        }
+
+
+        // The default (top) wallet account from a list of test accounts 
+        web3.eth.defaultAccount = web3.eth.accounts[0];
+        var starNotary = web3.eth.contract(StarNotaryABI).at('0x3ad4dd7ff49a625763d1a2eb0230a9434ff2ea16');//ganache-cli;
+        //var starNotary = web3.eth.contract(StarNotaryABI).at('0x53d264e98c1661c8bf960e911b29cf24c7ac120d');//ganache-cli;
+
+
+        findStar = () => {
+            web3.eth.getAccounts((error, accounts) => {
+                if (error) {
+                    console.log(error)
+                    return
+                }
+
+                let token = getToken();
+
+                starNotary.tokenIdToStarInfo
+                    .call(
+                        token,
+                        (error, result) => {
+                            if (error) {
+                                alert(error);
+                                return
+                            }
+                            console.log(result);
+                            setStarName(result[0])
+                            setStarStory(result[1])
+                            setStarRA(result[2])
+                            setStarDEC(result[3])
+                            setStarMAG(result[4])
+                        })
+            })
+        }
+
+        claimStar = async () => {
+            let name = getStarName();
+            let story = getStarStory();
+            let ra = getStarRA();
+            let dec = getStarDEC();
+            let mag = getStarMAG();
+
+            web3.eth.getAccounts((error, accounts) => {
+                if (error) {
+                    console.log(error)
+                    return
+                }
+
+                let createEvent = starNotary.createStarEvent();
+
+                createEvent.watch(function (err, result) {
+                    if (err) {
+                        throw (err);
+                    }
+
+                    let token = result.args.tokenId.toNumber().toString();
+                    alert('Star created, new token ' + token);
+                });
+
+                starNotary.createStar
+                    .sendTransaction(
+                        name,
+                        ra,
+                        dec,
+                        mag,
+                        story,
+                        { from: accounts[0], gas: 250000 },
+                        (error, result) => {
+                            if (error) {
+                                alert(error);
+                                return
+                            }
+
+                            resetForm();
+                        }
+                    )
+            })
+
+        }
+    </script>
+</body>
+
+</html>

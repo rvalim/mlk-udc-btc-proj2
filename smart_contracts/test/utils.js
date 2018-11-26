@@ -5,8 +5,16 @@ class Utils {
         this.creatStarEvent = [];
     }
 
-    async createStar (name, dec, mag, cent, story, response, account = this.defaultAccount) {
-        let index = this.creatStarEvent.push(this.contract.createStarEvent()) -1 ;
+    async createStar(
+        name,
+        dec,
+        mag,
+        ra,
+        story,
+        response,
+        account = this.defaultAccount) {
+
+        let index = this.creatStarEvent.push(this.contract.createStarEvent()) - 1;
 
         this.creatStarEvent[index].watch(function (err, result) {
             if (err) {
@@ -14,18 +22,18 @@ class Utils {
             }
             if (response) response(result.args.tokenId);
         });
-        
+
         return this.contract.createStar.sendTransaction(
             name,
+            ra,
             dec,
             mag,
-            cent,
             story,
             { from: account });
     }
 
 
-    async expectFailure (_function, errorMessage = 'Inexpected error message') {
+    async expectFailure(_function, errorMessage = 'Inexpected error message') {
         try {
             await _function()
         } catch (error) {

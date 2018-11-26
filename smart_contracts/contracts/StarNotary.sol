@@ -1,15 +1,16 @@
 pragma solidity ^0.4.23;
 
 import '../node_modules/openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
+// import './StringLib.sol';
 
 contract StarNotary is ERC721 { 
 
     struct Star { 
         string name;
+        string story;
+        string ra;
         string dec;
         string mag;
-        string cent;
-        string story;
     }
 
     mapping(bytes32 => bool) _tokenExists;
@@ -18,13 +19,13 @@ contract StarNotary is ERC721 {
 
     event createStarEvent(uint256 tokenId);
 
-    function createStar(string _name, string _dec, string _mag, string _cent, string _story) 
+    function createStar(string _name, string _ra, string _dec, string _mag, string _story) 
     public
     {
-        bytes32 starHash = _genHash(_dec, _mag, _cent);
+        bytes32 starHash = _genHash(_ra, _dec, _mag);
         require(!_checkIfStarExist(starHash), "This coordinates has already been registered!");
 
-        Star memory newStar = Star(_name, _dec, _mag, _cent, _story);
+        Star memory newStar = Star(_name, _story, _ra, _dec, _mag);
         uint256 tokenId = stars.push(newStar) - 1;
 
         // _tokenToIndex[starHash] = tokenId;
@@ -69,19 +70,23 @@ contract StarNotary is ERC721 {
     public view
     returns(
         string name, 
+        string story, 
+        string ra,
         string dec, 
-        string mag, 
-        string cent,
-        string story 
+        string mag 
     ) {
         Star memory s = stars[_tokenId];
-        return (s.name, s.dec, s.mag, s.cent, s.story);
+        name = s.name;
+        story = s.story;
+        dec = string(abi.encodePacked('dec_', s.dec));
+        mag = string(abi.encodePacked('mag_', s.mag));
+        ra = string(abi.encodePacked('ra_', s.ra));
     }
 
-    function checkIfStarExist(string dec, string mag, string cent) 
+    function checkIfStarExist(string ra, string dec, string mag) 
     public view
     returns (bool) {
-        bytes32 starHash = _genHash(dec, mag, cent);
+        bytes32 starHash = _genHash(ra, dec, mag);
         return (_checkIfStarExist(starHash));
     }
     
@@ -100,10 +105,10 @@ contract StarNotary is ERC721 {
         canBuy = (msg.sender != owner || getApproved(_tokenId) == msg.sender);
     }
 
-    function _genHash(string dec, string mag, string cent) 
+    function _genHash(string ra, string dec, string mag) 
     private pure
     returns (bytes32) {
-        return keccak256(abi.encodePacked(dec, mag, cent));
+        return keccak256(abi.encodePacked(ra, dec, mag));
     }
 
 }
